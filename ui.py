@@ -39,7 +39,7 @@ def is_valid_api_key(api_key):
         co.generate("Hello, I am Crypto. How can I help you today?")
         return True
 
-    except cohere.CohereAPIError:
+    except cohere.errors.UnauthorizedError:
         st.warning("Invalid API key. Please enter a valid API key.")
         return False
 
@@ -58,7 +58,7 @@ if is_valid_api_key(api_key):
             try: 
                 response = chatbot.generate_response(prompt)
                 text = st.write_stream(response)
-            except cohere.CohereAPIError as e:
+            except cohere.errors.UnauthorizedError as e:
                 text = f"Sorry, I am limited to only a few api calls a minute. Please try again later."
                 st.error(e)
         st.session_state.messages.append({"role": "assistant", "content": text})
