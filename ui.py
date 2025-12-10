@@ -36,9 +36,9 @@ def is_valid_api_key(api_key):
         return False
     try:
         co = cohere.ClientV2(api_key)
-        # Simple API call to validate the key using v2 format
+
         co.chat(
-            model="command-r-plus",
+            model="command-a-03-2025",
             messages=[{"role": "user", "content": "test"}]
         )
         return True
