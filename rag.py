@@ -46,8 +46,8 @@ class ChatBot:
         self.conversation_id = str(uuid4())
 
     def generate_response(self, prompt: str):
-        # Step 1: Generate search queries
-        response = self.client.chat(message=prompt, search_queries_only=True)
+        # Generate search queries
+        response = self.client.chat(model="command-a-03-2025", message=prompt, search_queries_only=True)
         
         if response.search_queries:
             print("Retrieving relevant information...")
@@ -55,8 +55,9 @@ class ChatBot:
         else:
             documents = []
 
-        # Step 2: Generate grounded response with retrieved documents
+        # Generate grounded response with retrieved documents
         stream = self.client.chat(
+            model="command-a-03-2025",
             message=prompt,
             documents=documents,
             conversation_id=self.conversation_id,
@@ -64,9 +65,9 @@ class ChatBot:
         )
         
         for event in stream:
-            if hasattr(event, "event_type") and event.event_type == "text-generation":  # SDK may vary
+            if hasattr(event, "event_type") and event.event_type == "text-generation":
                 yield event.text
-            elif hasattr(event, "text"):  # Alternative attribute in some SDK versions
+            elif hasattr(event, "text"):
                 yield event.text
 
     def get_docs(self, response):
