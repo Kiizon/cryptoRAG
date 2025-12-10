@@ -1,7 +1,6 @@
 import streamlit as st
 from rag import ChatBot, Documents
 import cohere
-from cohere.errors import UnauthorizedError, NotFoundError, CohereError
 
 st.title("CryptoRAG ChatBot")
 st.markdown("This is a chatbot that uses cohere's RAG model to answer questions about cryptography.")
@@ -40,7 +39,7 @@ def is_valid_api_key(api_key):
         co.generate(prompt="Hello, I am Crypto. How can I help you today?")
         return True
 
-    except cohere.errors.UnauthorizedError:
+    except Exception as e:
         st.warning("Invalid API key. Please enter a valid API key.")
         return False
 
@@ -59,7 +58,7 @@ if is_valid_api_key(api_key):
             try: 
                 response = chatbot.generate_response(prompt)
                 text = st.write_stream(response)
-            except cohere.errors.UnauthorizedError as e:
+            except Exception as e:
                 text = f"Sorry, I am limited to only a few api calls a minute. Please try again later."
                 st.error(e)
         st.session_state.messages.append({"role": "assistant", "content": text})
