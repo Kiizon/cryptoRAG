@@ -29,22 +29,29 @@ sources = [
 
 def is_valid_api_key(api_key):
     """
-    Checks if the API key is valid.
+    Checks if the API key is valid using Cohere v2 API.
     """
     if not api_key:
         st.info("Please enter your Cohere API key in the sidebar to continue.")
         return False
     try:
-        co  = cohere.ClientV2(api_key)
-        co.generate(prompt="Hello, I am Crypto. How can I help you today?")
+        co = cohere.ClientV2(api_key)
+        # Simple API call to validate the key using v2 format
+        co.chat(
+            model="command-r-plus",
+            messages=[{"role": "user", "content": "test"}]
+        )
         return True
 
-    except Exception as e:
+    except cohere.errors.UnauthorizedError:
         st.warning("Invalid API key. Please enter a valid API key.")
+        return False
+    except Exception as e:
+        st.error(f"Error validating API key: {e}")
         return False
 
 if is_valid_api_key(api_key):
-    client =  cohere.ClientV2(api_key)
+    client = cohere.ClientV2(api_key)
     documents = Documents(sources, client)
     chatbot = ChatBot(documents, client)
 
@@ -58,8 +65,10 @@ if is_valid_api_key(api_key):
             try: 
                 response = chatbot.generate_response(prompt)
                 text = st.write_stream(response)
+            except cohere.errors.UnauthorizedError:
+                text = "Invalid API key. Please check your API key."
+                st.error(text)
             except Exception as e:
-                text = f"Sorry, I am limited to only a few api calls a minute. Please try again later."
+                text = f"Sorry, an error occurred. Please try again later."
                 st.error(e)
         st.session_state.messages.append({"role": "assistant", "content": text})
-
