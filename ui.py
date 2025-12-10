@@ -36,7 +36,7 @@ def is_valid_api_key(api_key):
         return False
     try:
         co  = cohere.Client(api_key)
-        co.generate("Hello, I am Crypto. How can I help you today?")
+        co.generate(prompt="Hello, I am Crypto. How can I help you today?")
         return True
 
     except cohere.errors.UnauthorizedError:
