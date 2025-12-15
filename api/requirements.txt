@@ -1,0 +1,8 @@
+fastapi==0.109.2
+uvicorn==0.27.1
+cohere==5.1.5
+unstructured==0.12.5
+pdfminer.six==20231228
+hnswlib==0.8.0
+requests==2.31.0
+pydantic==2.6.4
