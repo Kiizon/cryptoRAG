@@ -1,2 +1,0 @@
-cohere>=5.0.0
-streamlit>=1.0.0
