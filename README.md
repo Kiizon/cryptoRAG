@@ -1,6 +1,8 @@
 # CryptoRAG
 
-RAG-powered AI chatbot for cryptography education, specializing in AES and historical ciphers.
+RAG-powered AI chatbot for cryptography education.
+
+>This project was inspired by the course [CPS 633](https://www.torontomu.ca/calendar/2025-2026/courses/computer-science/CPS/633/).
 
 **Note:** Recently migrated from a Streamlit app to a React + FastAPI app.
 
