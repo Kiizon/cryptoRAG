@@ -97,7 +97,7 @@ export function Sidebar({ apiKey, setApiKey, isOpen, onClose, className }: Sideb
                                         </div>
                                         <p className="text-xs text-neutral-400 leading-relaxed">
                                             Powered by <strong>Command R+</strong> & <strong>Rerank v3.5</strong>.
-                                            Indexing 2 premium sources.
+                                            Indexing 3 sources.
                                         </p>
                                     </div>
                                 </div>
