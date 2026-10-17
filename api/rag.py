@@ -2,6 +2,7 @@ import hnswlib
 import uuid
 from typing import List, Dict, Optional, Generator
 import cohere
+from cohere.errors import TooManyRequestsError
 from unstructured.partition.html import partition_html
 from unstructured.partition.text import partition_text
 from pdfminer.high_level import extract_text
@@ -9,6 +10,7 @@ from pdfminer.layout import LAParams
 from unstructured.chunking.title import chunk_by_title
 from unstructured.cleaners.core import clean_extra_whitespace, group_broken_paragraphs
 import io
+import time
 import requests
 
 class Documents:
@@ -94,10 +96,17 @@ class Documents:
         if not self.docs:
             return
 
+        # Embeddings must stay aligned with self.docs (HNSW ids are list indices),
+        # so a batch that can't be embedded fails ingestion instead of being skipped.
         batch_size = 90
         for i in range(0, len(self.docs), batch_size):
             batch = self.docs[i: i + batch_size]
             texts = [item["text"] for item in batch]
+            self.docs_embs.extend(self._embed_batch(texts))
+
+    def _embed_batch(self, texts: List[str], max_retries: int = 5) -> List[List[float]]:
+        """Embeds one batch of chunks, waiting and retrying if Cohere rate-limits us."""
+        for attempt in range(max_retries):
             try:
                 response = self.co.embed(
                     texts=texts,
@@ -105,10 +114,18 @@ class Documents:
                     input_type="search_document",
                     embedding_types=["float"]
                 )
-                if response.embeddings and response.embeddings.float_:
-                    self.docs_embs.extend(response.embeddings.float_)
-            except Exception as e:
-                print(f"Error embedding batch: {e}")
+            except TooManyRequestsError:
+                wait_seconds = min(60, 10 * 2 ** attempt)  # 10s, 20s, 40s, 60s, 60s
+                print(f"Rate limited embedding batch, retrying in {wait_seconds}s...")
+                time.sleep(wait_seconds)
+                continue
+
+            embeddings = response.embeddings.float_ if response.embeddings else []
+            if len(embeddings) != len(texts):
+                raise RuntimeError(f"Expected {len(texts)} embeddings, got {len(embeddings)}")
+            return embeddings
+
+        raise RuntimeError(f"Embedding batch still rate limited after {max_retries} attempts")
 
     def index(self) -> None:
         """Indexes embeddings using HNSWLib."""
