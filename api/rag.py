@@ -1,5 +1,6 @@
 import hnswlib
 import uuid
+from collections import OrderedDict
 from typing import List, Dict, Optional, Generator
 import cohere
 from cohere.errors import TooManyRequestsError
@@ -24,6 +25,8 @@ class Documents:
         self.retrieve_top_k = 20
         self.rerank_top_k = 5
         self.idx = None
+        self.query_cache: OrderedDict[str, List[float]] = OrderedDict()
+        self.query_cache_size = 1024
         
         self.load()
         self.embed()
@@ -141,19 +144,34 @@ class Documents:
         self.idx.add_items(self.docs_embs, list(range(doc_count)))
         print(f"Indexing complete: {doc_count} chunks")
 
-    def retrieve(self, query: str) -> List[Dict[str, str]]:
-        """Retrieves and reranks relevant documents."""
-        if not self.idx or not self.docs:
-            return []
+    def embed_query(self, query: str) -> List[float]:
+        """Embeds a query, reusing the cached embedding if this query was asked before."""
+        normalized_query = " ".join(query.split())  # so extra spaces still hit the cache
 
-        # Embed Query
+        cached_emb = self.query_cache.get(normalized_query)
+        if cached_emb is not None:
+            self.query_cache.move_to_end(normalized_query)  # mark as most recently used
+            return cached_emb
+
         response = self.co.embed(
-            texts=[query],
+            texts=[normalized_query],
             model="embed-english-v3.0",
             input_type="search_query",
             embedding_types=["float"]
         )
         query_emb = response.embeddings.float_[0]
+
+        self.query_cache[normalized_query] = query_emb
+        if len(self.query_cache) > self.query_cache_size:
+            self.query_cache.popitem(last=False)  # evict the least recently used query
+        return query_emb
+
+    def retrieve(self, query: str) -> List[Dict[str, str]]:
+        """Retrieves and reranks relevant documents."""
+        if not self.idx or not self.docs:
+            return []
+
+        query_emb = self.embed_query(query)
 
         # KNN Search
         k_neighbors = min(self.retrieve_top_k, len(self.docs))
